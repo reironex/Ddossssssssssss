@@ -1,5 +1,5 @@
 {
-  "name": "autobot-dashboard",
+  "name": "AutoBotDashboard",
   "version": "1.0",
   "main": "src/main.js",
   "scripts": {
