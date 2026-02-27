@@ -1,7 +1,6 @@
 {
   "name": "autobot-dashboard",
-  "version": "1.0.0",
-  "description": "AutoBot Dashboard without config file",
+  "version": "1.0",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js"
