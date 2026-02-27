@@ -1,16 +1,14 @@
 {
-  "name": "AutoBotDDoS",
-  "version": "1.0",
-  "description": "",
+  "name": "autobot-dashboard",
+  "version": "1.0.0",
+  "description": "AutoBot Dashboard without config file",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js"
   },
-  "keywords": [],
-  "author": "Rui Reogo",
-  "license": "MIT",
   "dependencies": {
     "axios": "^1.7.4",
-    "crypto": "^1.0.1"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   }
 }
