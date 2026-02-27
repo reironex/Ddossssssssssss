@@ -3,47 +3,52 @@
 <head>
     <title>AutoBot Dashboard</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #00ff41; text-align: center; padding: 20px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333; max-width: 500px; margin: auto; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; }
-        button { width: 45%; padding: 10px; margin: 5px; cursor: pointer; border: none; font-weight: bold; border-radius: 5px; }
-        .btn-start { background: #28a745; color: white; }
-        .btn-stop { background: #dc3545; color: white; }
-        #logs { height: 200px; overflow-y: auto; background: black; text-align: left; padding: 10px; margin-top: 15px; font-family: monospace; font-size: 12px; border: 1px solid #333; }
+        body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #00ff41; text-align: center; padding: 20px; }
+        .card { background: #1a1a1a; padding: 25px; border-radius: 15px; border: 1px solid #333; max-width: 450px; margin: auto; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
+        input { width: 90%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #444; color: #00ff41; border-radius: 5px; font-family: inherit; }
+        button { width: 45%; padding: 12px; margin: 5px; cursor: pointer; border: none; font-weight: bold; border-radius: 5px; text-transform: uppercase; }
+        .btn-start { background: #00ff41; color: #000; }
+        .btn-stop { background: #ff3131; color: white; }
+        #logs { height: 200px; overflow-y: auto; background: #000; text-align: left; padding: 10px; margin-top: 20px; font-size: 12px; border: 1px solid #00ff41; border-radius: 5px; }
+        .stat-display { margin: 15px 0; font-size: 1.1rem; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>AutoBot Dashboard</h2>
+        <h2>[ AUTOBOT DASHBOARD ]</h2>
         <input type="text" id="url" placeholder="Target URL (e.g. https://site.com)">
-        <input type="number" id="interval" placeholder="Interval in MS (e.g. 1000)">
-        <input type="number" id="numBots" placeholder="Number of Bots (e.g. 10)">
+        <input type="number" id="interval" placeholder="Interval in MS (e.g. 1000)" value="1000">
+        <input type="number" id="numBots" placeholder="Number of Bots (e.g. 10)" value="10">
         <div>
-            <button class="btn-start" onclick="start()">START</button>
-            <button class="btn-stop" onclick="stop()">STOP</button>
+            <button class="btn-start" onclick="start()">Launch Bots</button>
+            <button class="btn-stop" onclick="stop()">Stop All</button>
         </div>
-        <p>Success: <b id="s-count">0</b> | Errors: <b id="e-count">0</b></p>
-        <div id="logs">Ready...</div>
+        <div class="stat-display">
+            Success: <span id="s-count">0</span> | Errors: <span id="e-count">0</span>
+        </div>
+        <div id="logs">System ready... awaiting commands.</div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const start = () => {
-            socket.emit('start-bots', {
+            const data = {
                 url: document.getElementById('url').value,
                 interval: document.getElementById('interval').value,
                 numBots: document.getElementById('numBots').value
-            });
+            };
+            if(!data.url.startsWith('http')) return alert("Enter valid URL!");
+            socket.emit('start-bots', data);
         };
         const stop = () => socket.emit('stop-bots');
 
-        socket.on('log', (data) => {
+        socket.on('log', (payload) => {
             const logs = document.getElementById('logs');
-            logs.innerHTML += `<div>> ${data.msg}</div>`;
+            logs.innerHTML += `<div>> ${payload.msg}</div>`;
             logs.scrollTop = logs.scrollHeight;
-            document.getElementById('s-count').innerText = data.stats.success;
-            document.getElementById('e-count').innerText = data.stats.errors;
+            document.getElementById('s-count').innerText = payload.stats.success;
+            document.getElementById('e-count').innerText = payload.stats.errors;
         });
     </script>
 </body>
